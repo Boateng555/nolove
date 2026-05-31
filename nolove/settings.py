@@ -6,16 +6,21 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+IS_VERCEL = bool(os.environ.get('VERCEL') or os.environ.get('VERCEL_ENV'))
 
 SECRET_KEY = os.environ.get(
     'SECRET_KEY',
     'django-insecure-dev-only-change-for-production',
 )
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
-IS_VERCEL = os.environ.get('VERCEL') == '1'
+DEBUG = os.environ.get(
+    'DEBUG',
+    'False' if IS_VERCEL else 'True',
+).lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -93,6 +98,12 @@ if database_url:
             ssl_require='sslmode=require' in database_url,
         ),
     }
+elif IS_VERCEL:
+    raise ImproperlyConfigured(
+        'DATABASE_URL is required on Vercel. Create a free Postgres database at '
+        'https://neon.tech and add the connection string under Vercel → Settings → '
+        'Environment Variables, then redeploy.'
+    )
 else:
     DATABASES = {
         'default': {
