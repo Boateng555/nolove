@@ -1,0 +1,27 @@
+<p class="dash-file-wrap">
+    {% if widget.file_kind == 'photo' %}
+    <label class="dash-file-btn dash-file-btn-photo" for="{{ widget.attrs.id }}">
+        <span class="dash-file-btn-icon">{{ widget.button_icon }}</span>
+        <span class="dash-file-btn-text">{{ widget.button_text }}</span>
+    </label>
+    <span class="dash-file-hint">{{ widget.upload_hint }}</span>
+    {% else %}
+    <label class="dash-file-btn dash-file-btn-video" for="{{ widget.attrs.id }}">
+        <span class="dash-file-btn-icon">🎬</span>
+        <span class="dash-file-btn-text">Tap to add video</span>
+    </label>
+    <span class="dash-file-hint">MP4 or MOV from phone · max {{ widget.max_video_mb }}MB</span>
+    {% endif %}
+
+    <input type="{{ widget.type }}" name="{{ widget.name }}"{% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}{% include "django/forms/widgets/attrs.html" %}>
+
+    {% if widget.is_initial %}
+    <span class="dash-file-current">Saved ✓ — pick a new file to replace</span>
+    {% if not widget.required %}
+    <label class="dash-file-clear">
+        <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}">
+        Remove file
+    </label>
+    {% endif %}
+    {% endif %}
+</p>

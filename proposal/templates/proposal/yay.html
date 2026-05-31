@@ -1,0 +1,27 @@
+{% extends 'proposal/base.html' %}
+
+{% block title %}You said yes!{% endblock %}
+{% block body_class %}page-yay{% endblock %}
+
+{% block content %}
+<div class="card card-yay">
+    <div class="media-wrap media-wrap-icon">
+        {% if site.yay_image %}
+        <img
+            src="{{ site.yay_image.url }}"
+            alt=""
+            class="media-img media-img-icon{% if '.gif' in site.yay_image.name|lower %} media-live{% endif %}"
+        >
+        {% else %}
+        <div class="media-placeholder media-placeholder-icon">
+            <span>add image in dashboard</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <h1 class="title title-big">{{ site.yay_title }}</h1>
+    <p class="subtitle">{{ site.yay_subtitle }}</p>
+
+    <a href="{% url 'food' %}" class="btn btn-primary btn-full">{{ site.yay_button }}</a>
+</div>
+{% endblock %}

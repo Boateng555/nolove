@@ -1,0 +1,36 @@
+{% extends 'proposal/base.html' %}
+
+{% block title %}When are you free?{% endblock %}
+{% block body_class %}page-schedule{% endblock %}
+
+{% block content %}
+<div class="card card-schedule">
+    <div class="schedule-header">
+        <span class="schedule-icon">📅</span>
+        <span class="schedule-paws">🐾🐾</span>
+    </div>
+
+    <h1 class="title">{{ site.schedule_title }}</h1>
+
+    <form method="post" class="schedule-form">
+        {% csrf_token %}
+
+        <label class="field-label" for="date">{{ site.schedule_date_label }}</label>
+        <div class="field-wrap">
+            <input type="date" id="date" name="date" class="field-input" required>
+        </div>
+
+        <label class="field-label" for="time_slot">{{ site.schedule_time_label }}</label>
+        <div class="field-wrap">
+            <select id="time_slot" name="time_slot" class="field-input field-select" required>
+                <option value="" disabled selected>Choose a time</option>
+                {% for value, label in time_slots %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">{{ site.schedule_button }}</button>
+    </form>
+</div>
+{% endblock %}

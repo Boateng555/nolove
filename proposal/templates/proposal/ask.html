@@ -1,0 +1,48 @@
+{% extends 'proposal/base.html' %}
+
+{% block title %}Will you go on a date with me?{% endblock %}
+{% block body_class %}page-ask{% endblock %}
+
+{% block decorations %}
+<div class="blossoms" aria-hidden="true">
+    <span>🌸</span><span>🌸</span><span>🌸</span><span>🌸</span><span>🌸</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card card-ask">
+    <div class="media-wrap">
+        {% if site.ask_image %}
+        <img
+            src="{{ site.ask_image.url }}"
+            alt=""
+            class="media-img{% if '.gif' in site.ask_image.name|lower %} media-live{% endif %}"
+        >
+        {% else %}
+        <div class="media-placeholder">
+            <span>add photo in dashboard</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="no-bubble" id="no-bubble" aria-live="polite" hidden></div>
+
+    <h1 class="title">{{ ask_title }}</h1>
+
+    <div class="btn-row btn-row-ask">
+        <a href="{% url 'yay' %}" class="btn btn-yes" id="yes-btn">{{ site.ask_yes_button }}</a>
+        <button type="button" class="btn btn-no" id="no-btn">{{ site.ask_no_button }}</button>
+    </div>
+</div>
+
+{{ no_messages|json_script:"no-messages" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const trackUrl = '{% url "track_click" %}';
+    const noMessages = JSON.parse(document.getElementById('no-messages').textContent);
+    initRunawayButton('no-btn', trackUrl, { messages: noMessages });
+    initAskTracking(trackUrl);
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'proposal/base.html' %}
+
+{% block title %}See you soon!{% endblock %}
+{% block body_class %}page-final{% endblock %}
+
+{% block decorations %}
+<div class="hearts" aria-hidden="true">
+    <span>💗</span><span>💗</span><span>💗</span><span>💗</span><span>💗</span>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if is_preview %}
+<div class="preview-banner">Preview — final page</div>
+{% endif %}
+
+<div class="final-wrap page-enter">
+    <div class="avatar-wrap">
+        {% if site.final_profile_image %}
+        <img
+            src="{{ site.final_profile_image.url }}"
+            alt=""
+            class="avatar{% if '.gif' in site.final_profile_image.name|lower %} avatar-live{% endif %}"
+        >
+        {% else %}
+        <div class="avatar-placeholder">
+            <span>profile photo goes here</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <h1 class="final-title page-enter-delay-1">{{ final_title }}</h1>
+
+    <p class="final-note page-enter-delay-2">{{ site.final_note }}</p>
+
+    {% if site.final_video or site.final_video_poster %}
+    <div class="video-wrap has-video page-enter-delay-3">
+        {% if site.final_video_poster %}
+        <img
+            src="{{ site.final_video_poster.url }}"
+            alt=""
+            class="final-video-poster{% if not site.final_video %} final-video-poster-only{% endif %}"
+            id="video-poster"
+        >
+        {% endif %}
+        {% if site.final_video %}
+        <video
+            class="final-video"
+            id="final-video"
+            muted
+            loop
+            playsinline
+            {% if site.final_video_poster %}poster="{{ site.final_video_poster.url }}"{% endif %}
+            preload="metadata"
+        >
+            <source src="{{ site.final_video.url }}" type="{{ final_video_type }}">
+        </video>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if site.final_video %}
+<script>
+    initFinalVideo();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,239 @@
+/**
+ * Poll live yes/no activity and her choices for the admin dashboard.
+ */
+function initLiveActivity(apiUrl) {
+    const feed = document.getElementById('live-feed');
+    const updatedEl = document.getElementById('live-updated');
+    const liveDot = document.getElementById('live-dot');
+    const choicesBody = document.getElementById('choices-body');
+    const responsesBody = document.getElementById('responses-body');
+
+    if (!apiUrl) return;
+
+    let sinceClickId = 0;
+    let lastProposalCheck = new Date(Date.now() - 60000).toISOString();
+    const knownFeedKeys = new Set();
+
+    function timeAgo(iso) {
+        const diff = Date.now() - new Date(iso).getTime();
+        const secs = Math.floor(diff / 1000);
+        if (secs < 5) return 'just now';
+        if (secs < 60) return `${secs}s ago`;
+        const mins = Math.floor(secs / 60);
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        return `${hrs}h ago`;
+    }
+
+    function updateStats(stats) {
+        const map = {
+            'stat-yes-today': stats.yes_today,
+            'stat-no-today': stats.no_today,
+            'stat-yes-total': stats.yes_total,
+            'stat-no-total': stats.no_total,
+            'stat-scheduled-total': stats.scheduled_total,
+        };
+        Object.entries(map).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        });
+    }
+
+    function badgeClass(proposal) {
+        if (proposal.completed) return 'dash-badge-done';
+        if (proposal.food_choice && proposal.food_choice !== '—') return 'dash-badge-food';
+        return 'dash-badge-yes';
+    }
+
+    function renderProposalRow(proposal, isNew, fullRow) {
+        const tr = document.createElement('tr');
+        if (proposal.completed) tr.className = 'dash-row-done';
+        if (isNew) tr.classList.add('dash-row-new');
+        tr.dataset.proposalId = proposal.id;
+
+        if (fullRow) {
+            tr.innerHTML = `
+                <td><span class="dash-badge ${badgeClass(proposal)}">${proposal.status}</span></td>
+                <td>${proposal.food_choice}</td>
+                <td>${proposal.date}</td>
+                <td>${proposal.time_slot}</td>
+                <td>${proposal.said_yes_at}</td>
+                <td>${proposal.updated_full}</td>
+            `;
+        } else {
+            tr.innerHTML = `
+                <td><span class="dash-badge ${badgeClass(proposal)}">${proposal.status}</span></td>
+                <td>${proposal.food_choice}</td>
+                <td>${proposal.date}</td>
+                <td>${proposal.time_slot}</td>
+                <td>${proposal.updated}</td>
+            `;
+        }
+        return tr;
+    }
+
+    function refreshChoicesTable(proposals, newProposals) {
+        [choicesBody, responsesBody].forEach((tbody) => {
+            if (!tbody) return;
+            const fullRow = tbody.id === 'responses-body';
+
+            if (!proposals.length) {
+                tbody.innerHTML = `<tr><td colspan="${fullRow ? 6 : 5}" class="dash-empty">Waiting for her choices...</td></tr>`;
+                return;
+            }
+
+            if (tbody.querySelector('.dash-empty')) {
+                tbody.innerHTML = '';
+            }
+
+            const newIds = new Set(newProposals.map(p => String(p.id)));
+
+            proposals.forEach((proposal) => {
+                let row = tbody.querySelector(`tr[data-proposal-id="${proposal.id}"]`);
+                const isNew = newIds.has(String(proposal.id));
+                if (row) {
+                    row.replaceWith(renderProposalRow(proposal, isNew, fullRow));
+                } else {
+                    tbody.prepend(renderProposalRow(proposal, isNew, fullRow));
+                }
+            });
+        });
+    }
+
+    function renderClickEvent(event, isNew) {
+        const li = document.createElement('li');
+        li.className = 'dash-live-item' + (event.choice === 'yes' ? ' dash-live-yes' : ' dash-live-no');
+        if (isNew) li.classList.add('dash-live-item-new');
+        li.dataset.feedKey = 'click-' + event.id;
+        li.innerHTML = `
+            <span class="dash-live-item-badge">${event.label}</span>
+            <span class="dash-live-item-time">${event.time}</span>
+            <span class="dash-live-item-ago">${timeAgo(event.iso)}</span>
+        `;
+        return li;
+    }
+
+    function renderProposalEvent(proposal, isNew) {
+        const li = document.createElement('li');
+        li.className = 'dash-live-item dash-live-choice';
+        if (proposal.completed) li.classList.add('dash-live-scheduled');
+        if (isNew) li.classList.add('dash-live-item-new');
+        li.dataset.feedKey = 'proposal-' + proposal.id + '-' + proposal.iso;
+        li.innerHTML = `
+            <span class="dash-live-item-badge">${proposal.label}</span>
+            <span class="dash-live-item-time">${proposal.updated}</span>
+            <span class="dash-live-item-ago">${timeAgo(proposal.iso)}</span>
+        `;
+        return li;
+    }
+
+    function refreshFeed(clicks, newClicks, newProposals) {
+        if (!feed) return;
+
+        const hasActivity = clicks.length || newProposals.length;
+        if (!hasActivity && !feed.children.length) {
+            feed.innerHTML = '<li class="dash-live-empty">Waiting for activity...</li>';
+            return;
+        }
+
+        if (feed.querySelector('.dash-live-empty')) {
+            feed.innerHTML = '';
+        }
+
+        newProposals.forEach((proposal) => {
+            const key = 'proposal-' + proposal.id + '-' + proposal.iso;
+            if (knownFeedKeys.has(key)) return;
+            knownFeedKeys.add(key);
+            feed.prepend(renderProposalEvent(proposal, true));
+        });
+
+        newClicks.forEach((event) => {
+            const key = 'click-' + event.id;
+            if (knownFeedKeys.has(key)) return;
+            knownFeedKeys.add(key);
+            feed.prepend(renderClickEvent(event, true));
+        });
+
+        while (feed.children.length > 60) {
+            feed.removeChild(feed.lastChild);
+        }
+    }
+
+    async function poll() {
+        try {
+            const url = `${apiUrl}?since=${sinceClickId}&since_proposal_time=${encodeURIComponent(lastProposalCheck)}`;
+            const res = await fetch(url, { credentials: 'same-origin' });
+            if (!res.ok) throw new Error('fetch failed');
+
+            const data = await res.json();
+            updateStats(data.stats);
+            refreshFeed(data.events, data.new_events, data.new_proposals || []);
+            refreshChoicesTable(data.proposals || [], data.new_proposals || []);
+
+            if (data.latest_id > sinceClickId) sinceClickId = data.latest_id;
+            lastProposalCheck = new Date().toISOString();
+
+            if (liveDot) liveDot.classList.remove('dash-live-dot-error');
+            if (updatedEl) {
+                updatedEl.textContent = 'Updated ' + new Date().toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                });
+            }
+        } catch {
+            if (liveDot) liveDot.classList.add('dash-live-dot-error');
+            if (updatedEl) updatedEl.textContent = 'Reconnecting...';
+        }
+    }
+
+    poll();
+    setInterval(poll, 2000);
+}
+
+/**
+ * Live preview on Ask page tab — updates as you type her name & messages.
+ */
+function initAskPreview() {
+    const nameInput = document.getElementById('field-her-name');
+    const titleInput = document.getElementById('field-ask-title');
+    const messagesInput = document.getElementById('field-runaway-messages');
+    const yesInput = document.querySelector('[name="ask_yes_button"]');
+    const noInput = document.querySelector('[name="ask_no_button"]');
+
+    const previewTitle = document.getElementById('preview-title');
+    const previewYes = document.getElementById('preview-yes');
+    const previewNo = document.getElementById('preview-no');
+    const previewList = document.getElementById('preview-messages');
+
+    if (!nameInput || !previewTitle) return;
+
+    function formatLine(line, name) {
+        if (name) return line.replace(/\{name\}/g, name);
+        return line.replace(/\{name\}/g, '').replace(/\s{2,}/g, ' ').replace(' ?', '?').trim();
+    }
+
+    function updatePreview() {
+        const name = nameInput.value.trim();
+        const title = titleInput ? titleInput.value : '';
+        if (previewTitle) {
+            previewTitle.textContent = name
+                ? title.replace(/\{name\}/g, name)
+                : title.replace(/\{name\}/g, '').replace(/\s{2,}/g, ' ').trim();
+        }
+        if (previewYes && yesInput) previewYes.textContent = yesInput.value;
+        if (previewNo && noInput) previewNo.textContent = noInput.value;
+
+        if (previewList && messagesInput) {
+            const lines = messagesInput.value.split('\n').map(l => l.trim()).filter(Boolean);
+            previewList.innerHTML = lines.length
+                ? lines.map(l => `<li>${formatLine(l, name)}</li>`).join('')
+                : '<li>please...</li>';
+        }
+    }
+
+    [nameInput, titleInput, messagesInput, yesInput, noInput].forEach(el => {
+        if (el) el.addEventListener('input', updatePreview);
+    });
+    updatePreview();
+}

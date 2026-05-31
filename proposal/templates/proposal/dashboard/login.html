@@ -1,0 +1,26 @@
+{% extends 'proposal/dashboard/base.html' %}
+
+{% block title %}Login — Dashboard{% endblock %}
+
+{% block body %}
+<div class="dash-login-page">
+    <div class="dash-login-card">
+        <h1 class="dash-login-title">💗 Dashboard</h1>
+        <p class="dash-login-sub">Sign in to edit your date app</p>
+
+        <form method="post" class="dash-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="dash-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="dash-field">
+                {{ form.username }}
+            </div>
+            <div class="dash-field">
+                {{ form.password }}
+            </div>
+            <button type="submit" class="dash-btn dash-btn-primary dash-btn-full">Sign in</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

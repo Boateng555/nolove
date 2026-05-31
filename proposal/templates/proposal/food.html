@@ -1,0 +1,45 @@
+{% extends 'proposal/base.html' %}
+
+{% block title %}What are we feeling?{% endblock %}
+{% block body_class %}page-food{% endblock %}
+
+{% block content %}
+<div class="card card-food">
+    <h1 class="title">{{ site.food_title }}</h1>
+
+    <form method="post" id="food-form" class="food-form">
+        {% csrf_token %}
+        <input type="hidden" name="food_choice" id="food-choice" value="">
+
+        <div class="food-grid">
+            {% for option in food_options %}
+            <button
+                type="button"
+                class="food-option"
+                data-value="{{ option.slug }}"
+                aria-pressed="false"
+            >
+                {% if option.image %}
+                <img src="{{ option.image.url }}" alt="{{ option.label }}">
+                {% else %}
+                <span class="food-emoji">{{ option.emoji }}</span>
+                {% endif %}
+                <span class="food-label">{{ option.label }}</span>
+            </button>
+            {% empty %}
+            <p class="food-empty">Add food options in the dashboard.</p>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="food-submit" disabled>
+            {{ site.food_button }}
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    initFoodSelection();
+</script>
+{% endblock %}
